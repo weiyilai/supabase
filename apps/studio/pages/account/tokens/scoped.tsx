@@ -1,22 +1,23 @@
 import { ExternalLink, Search } from 'lucide-react'
 import { useState } from 'react'
-import { AccessTokenList } from 'components/interfaces/Account/AccessTokens/AccessTokenList'
-import { NewTokenButton } from 'components/interfaces/Account/AccessTokens/Classic/NewTokenButton'
-import { AccessTokenNewBanner } from '@/components/interfaces/Account/AccessTokens/AccessTokenNewBanner/AccessTokenNewBanner'
+
 import AccessTokensLayout from 'components/layouts/AccessTokens/AccessTokensLayout'
+import { NewScopedTokenButton } from 'components/interfaces/Account/AccessTokens/Scoped/NewScopedTokenButton'
+import { AccessTokenNewBanner } from '@/components/interfaces/Account/AccessTokens/AccessTokenNewBanner/AccessTokenNewBanner'
+
+import { ScopedTokenList } from 'components/interfaces/Account/AccessTokens/Scoped/ScopedTokenList'
 import AccountLayout from 'components/layouts/AccountLayout/AccountLayout'
 import AppLayout from 'components/layouts/AppLayout/AppLayout'
 import DefaultLayout from 'components/layouts/DefaultLayout'
 import OrganizationLayout from 'components/layouts/OrganizationLayout'
-import { NewAccessToken } from 'data/access-tokens/access-tokens-create-mutation'
-import { DOCS_URL } from 'lib/constants'
+import { NewScopedAccessToken } from 'data/scoped-access-tokens/scoped-access-token-create-mutation'
 import type { NextPageWithLayout } from 'types'
 import { Button } from 'ui'
 import { Input } from 'ui-patterns/DataInputs/Input'
 
-const UserAccessTokens: NextPageWithLayout = () => {
-  const [newToken, setNewToken] = useState<NewAccessToken | undefined>()
+const ScopedTokens: NextPageWithLayout = () => {
   const [searchString, setSearchString] = useState('')
+  const [newToken, setNewToken] = useState<NewScopedAccessToken | undefined>()
 
   return (
     <AccessTokensLayout>
@@ -26,6 +27,7 @@ const UserAccessTokens: NextPageWithLayout = () => {
             token={newToken}
             onClose={() => setNewToken(undefined)}
             getTokenValue={(token) => token.token}
+            getTokenPermissions={(token) => token.permissions}
           />
         )}
         <div className="flex items-center justify-between gap-x-2 mb-3">
@@ -34,26 +36,35 @@ const UserAccessTokens: NextPageWithLayout = () => {
             autoComplete="off"
             icon={<Search size={12} />}
             value={searchString}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchString(e.target.value)}
+            onChange={(e: any) => setSearchString(e.target.value)}
             name="search"
             id="search"
-            placeholder="Filter tokens"
+            placeholder="Filter by name"
           />
           <div className="flex items-center gap-x-2">
             <Button asChild type="default" icon={<ExternalLink />}>
-              <a href={`${DOCS_URL}/reference/api/introduction`} target="_blank" rel="noreferrer">
+              <a
+                href="https://supabase.com/docs/reference/api/introduction"
+                target="_blank"
+                rel="noreferrer"
+              >
                 API Docs
               </a>
             </Button>
             <Button asChild type="default" icon={<ExternalLink />}>
-              <a href={`${DOCS_URL}/reference/cli/start`} target="_blank" rel="noreferrer">
+              <a
+                href="https://supabase.com/docs/reference/cli/start"
+                target="_blank"
+                rel="noreferrer"
+              >
                 CLI docs
               </a>
             </Button>
-            <NewTokenButton onCreateToken={setNewToken} />
+            <NewScopedTokenButton onCreateToken={setNewToken} />
           </div>
         </div>
-        <AccessTokenList
+
+        <ScopedTokenList
           searchString={searchString}
           onDeleteSuccess={(id) => {
             if (id === newToken?.id) setNewToken(undefined)
@@ -64,9 +75,9 @@ const UserAccessTokens: NextPageWithLayout = () => {
   )
 }
 
-UserAccessTokens.getLayout = (page) => (
+ScopedTokens.getLayout = (page) => (
   <AppLayout>
-    <DefaultLayout hideMobileMenu headerTitle="Account">
+    <DefaultLayout headerTitle="Account">
       <OrganizationLayout>
         <AccountLayout title="Access Tokens">{page}</AccountLayout>
       </OrganizationLayout>
@@ -74,4 +85,4 @@ UserAccessTokens.getLayout = (page) => (
   </AppLayout>
 )
 
-export default UserAccessTokens
+export default ScopedTokens

@@ -1,7 +1,10 @@
 import AlertError from 'components/ui/AlertError'
-import { useAccessTokenDeleteMutation } from 'data/access-tokens/access-tokens-delete-mutation'
-import { AccessToken, useAccessTokensQuery } from 'data/access-tokens/access-tokens-query'
-import { MoreVertical, Trash } from 'lucide-react'
+import { useScopedAccessTokenDeleteMutation } from 'data/scoped-access-tokens/scoped-access-tokens-delete-mutation'
+import {
+  ScopedAccessToken,
+  useScopedAccessTokensQuery,
+} from 'data/scoped-access-tokens/scoped-access-token-query'
+import { MoreVertical, Trash, Key } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -19,28 +22,33 @@ import {
   ACCESS_TOKEN_SORT_VALUES,
   AccessTokenSort,
   AccessTokenSortColumn,
-} from './AccessToken.types'
-import { handleSortChange, filterAndSortTokens } from './AccessToken.utils'
-import { TableContainer } from './AccessTokenTable/TableContainer'
-import { RowLoading } from './AccessTokenTable/RowLoading'
-import { TokenNameCell, LastUsedCell, ExpiresCell } from './AccessTokenTable/TokenCells'
+} from '../AccessToken.types'
+import { handleSortChange, filterAndSortTokens } from '../AccessToken.utils'
+import { TableContainer } from '../AccessTokenTable/TableContainer'
+import { RowLoading } from '../AccessTokenTable/RowLoading'
+import { TokenNameCell, LastUsedCell, ExpiresCell } from '../AccessTokenTable/TokenCells'
+import { ViewTokenSheet } from './ViewTokenSheet'
 
-export interface AccessTokenListProps {
+export interface ScopedTokenListProps {
   searchString?: string
-  onDeleteSuccess: (id: number) => void
+  onDeleteSuccess: (id: string | number) => void
 }
 
-export const AccessTokenList = ({ searchString = '', onDeleteSuccess }: AccessTokenListProps) => {
+export const ScopedTokenList = ({ searchString = '', onDeleteSuccess }: ScopedTokenListProps) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [token, setToken] = useState<AccessToken | undefined>(undefined)
+  const [token, setToken] = useState<ScopedAccessToken | undefined>(undefined)
+  const [viewToken, setViewToken] = useState<ScopedAccessToken | undefined>(undefined)
+  const [isViewSheetOpen, setIsViewSheetOpen] = useState(false)
   const [sort, setSort] = useQueryState(
     'sort',
     parseAsStringLiteral<AccessTokenSort>(ACCESS_TOKEN_SORT_VALUES).withDefault('created_at:desc')
   )
 
-  const { data: tokens, error, isPending: isLoading, isError } = useAccessTokensQuery()
+  const { data: tokensData, error, isPending: isLoading, isError } = useScopedAccessTokensQuery()
 
-  const { mutate: deleteToken } = useAccessTokenDeleteMutation({
+  const tokens = tokensData?.tokens
+
+  const { mutate: deleteToken } = useScopedAccessTokenDeleteMutation({
     onSuccess: (_, vars) => {
       onDeleteSuccess(vars.id)
       toast.success('Successfully deleted access token')
@@ -92,9 +100,9 @@ export const AccessTokenList = ({ searchString = '', onDeleteSuccess }: AccessTo
       <TableContainer sort={sort} onSortChange={onSortChange}>
         <TableRow>
           <TableCell colSpan={4} className="py-12">
-            <p className="text-sm text-center text-foreground">No access tokens found</p>
+            <p className="text-sm text-center text-foreground">No scoped access tokens found</p>
             <p className="text-sm text-center text-foreground-light">
-              You do not have any tokens created yet
+              You do not have any scoped tokens created yet
             </p>
           </TableCell>
         </TableRow>
@@ -106,7 +114,7 @@ export const AccessTokenList = ({ searchString = '', onDeleteSuccess }: AccessTo
     <>
       <TableContainer sort={sort} onSortChange={onSortChange}>
         {filteredTokens?.map((x) => (
-          <TableRow key={x.token_alias}>
+          <TableRow key={x.id}>
             <TokenNameCell name={x.name} tokenAlias={x.token_alias} />
             <LastUsedCell lastUsedAt={x.last_used_at} />
             <ExpiresCell expiresAt={x.expires_at} />
@@ -122,6 +130,16 @@ export const AccessTokenList = ({ searchString = '', onDeleteSuccess }: AccessTo
                     />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side="bottom" align="end" className="w-40">
+                    <DropdownMenuItem
+                      className="gap-x-2"
+                      onClick={() => {
+                        setViewToken(x)
+                        setIsViewSheetOpen(true)
+                      }}
+                    >
+                      <Key size={12} />
+                      <p>View permissions</p>
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       className="gap-x-2"
                       onClick={() => {
@@ -148,13 +166,22 @@ export const AccessTokenList = ({ searchString = '', onDeleteSuccess }: AccessTo
         confirmLabelLoading="Deleting"
         onCancel={() => setIsOpen(false)}
         onConfirm={() => {
-          if (token) deleteToken({ id: token.id })
+          if (token) deleteToken({ id: token.id as string })
         }}
       >
         <p className="py-4 text-sm text-foreground-light">
           This action cannot be undone. Are you sure you want to delete "{token?.name}" token?
         </p>
       </ConfirmationModal>
+
+      <ViewTokenSheet
+        visible={isViewSheetOpen}
+        tokenId={viewToken ? String(viewToken.id) : undefined}
+        onClose={() => {
+          setIsViewSheetOpen(false)
+          setViewToken(undefined)
+        }}
+      />
     </>
   )
 }
